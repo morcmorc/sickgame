@@ -1,7 +1,6 @@
 import pygame
-import Player
-import Enemy
-import shootingEnemy
+import Leveleditor
+import Bullet
 
 successes, failures = pygame.init()
 print("{0} successes and {1} failures".format(successes, failures))
@@ -16,16 +15,15 @@ WHITE = (255,255,255)
 #rect = pygame.Rect((0,0), (32,32)) #pos dann size
 #image = pygame.Surface((32,32)) #size
 #image.fill(WHITE) #fill surface with color ( default = Black)
+le = Leveleditor.Leveleditor()
+le.level1()
 
-enemy = Enemy.Enemy(500,100)
-player = Player.Player()
-senemy = shootingEnemy.shootingEnemy(600,200)
 bullet_list = []
 running = True
 hit_time = 0
 game_over_bool = False
 #print(player.rect.center)
-
+player = le.ret_p_list()[0]
 # font player life
 font = pygame.font.SysFont(None, 24)
 font_game_over = pygame.font.SysFont(None, 40)
@@ -36,18 +34,60 @@ SHOOT = 2500
 pygame.time.set_timer(shoot_event, SHOOT)
 
 def redraw_gamewindow():
-    for bullet,dx,dy in bullet_list:
-        screen.blit(bullet.image,bullet.rect)
+    bullet_list = Bullet.b_list
+    for bullet in bullet_list:
         bullet.update()
         bullet.draw(screen)
+        screen.blit(bullet.image,bullet.rect)
         #print(bullet_list)
     
     #screen.fill(BLACK)
-    screen.blit(senemy.image,senemy.rect)
-    screen.blit(player.image,player.rect)
-    screen.blit(enemy.image, enemy.rect)
+    for se in le.ret_se_list():
+        screen.blit(se.image,se.rect)
+    for p in le.ret_p_list():
+        screen.blit(p.image,p.rect)
+    for e in le.ret_ene_list():
+        screen.blit(e.image, e.rect)
+
+        
+        
     screen.blit(show_life,(20,20))
     pygame.display.update() #aktualliserit den screen
+    #print(le.ret_bul_list())
+def check_collision(az,h):
+    
+    print("py_ticks: ",py_ticks,"hit_time: ",hit_time)
+    player.check_inv(py_ticks,h)
+    hit = h
+    if (h+player.inv_frames) < az:
+        print("NACH DER ERSTEN SCHLEIFE")
+        bullet_list = Bullet.b_list
+        if le.ret_ene_list():
+            for en in Leveleditor.enemy_list:
+                if en.rect.colliderect(player) and player.inv_bool == False:
+                    player.lose_life()
+                    player.set_inv_bool(True)
+                    hit = pygame.time.get_ticks()
+                    print(hit_time)
+                    print(player.life)
+            
+
+        if bullet_list:
+            for bullet in bullet_list:
+                #print(player.inv_bool,"yolo")
+                if bullet.rect.colliderect(player) and player.inv_bool == False:
+                    player.lose_life()
+                    player.set_inv_bool(True)
+                    hit = pygame.time.get_ticks()
+                    print(hit_time)
+                    print(player.life)
+    
+    if hit is None:
+        return 999999
+        pass
+    else:
+        return hit
+    
 
 while running:
     dt = clock.tick(FPS) / 1000 #return milliseceonds between each caöö to "tick" -> convert to secoonds
@@ -55,16 +95,20 @@ while running:
     py_ticks = pygame.time.get_ticks()
     
     #get bullet list
-    bullet_list = bullet_list = shootingEnemy.shootingEnemy.ret_bullet_list(senemy)
-    
+    le.update()
+    #sbullet_list = le.ret_bul_list()
     screen.fill(BLACK) #bg wird schwarz
+
+    if player.check_life() == False:
+        game_over_bool = True
 
     #Events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == shoot_event:
-            senemy.shoot_bullet(player.rect.center)  
+            for se in le.ret_se_list():
+                se.shoot(player.rect.center)  
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
                 player.velocity[1] = -200 * dt
@@ -80,25 +124,17 @@ while running:
             if event.key == pygame.K_a or event.key == pygame.K_d:
                 player.velocity[0] = 0
             
-    
-    enemy.search_player(player.rect.center)
-    
-    
-    
-    if player.rect.colliderect(enemy) and player.inv_bool == False:
-        player.lose_life()
-        player.set_inv_bool(True)
-        hit_time = pygame.time.get_ticks()
-        print(hit_time)
-        print(player.life)
+    for enemy in le.ret_ene_list():
+        enemy.search_player(player.rect.center)
+    #if game_over_bool == False:
+    #check_collision(py_ticks,hit_time)
+    hit_time = check_collision(py_ticks,hit_time)
         
-    if player.check_life() == False:
-        game_over_bool = True
+
     
-    player.check_inv(py_ticks,hit_time)
     
-    player.update()
-    enemy.update()
+    #player.update()
+    #enemy.update()
     
     
     #show player life
@@ -107,20 +143,25 @@ while running:
     #game_over
     if game_over_bool == True:
         #out of map damit garbage collection diese mistigen rechtecke holt
-        player.rect.center = (1000,1000)
-        enemy.rect.center = (1000,1000)
+        #player.rect.center = (1000,1000)
+        #enemy.rect.center = (1000,1000)
         
         #game over anzeige
+        if Leveleditor.player_list:
+            Leveleditor.player_list.pop()
+        if Leveleditor.shootingEnemy_list:
+            for x in range(len(Leveleditor.shootingEnemy_list)):
+                Leveleditor.shootingEnemy_list.pop()
+        if Leveleditor.enemy_list:
+            for x in range(len(Leveleditor.enemy_list)):
+                Leveleditor.enemy_list.pop()
+        if Bullet.b_list:
+            for x in range(len(Bullet.b_list)):
+                Bullet.b_list.pop()
+
         show_game_over = font.render("Game Over!",True,WHITE)
         screen.blit(show_game_over,(300,200))
      
         
-    for bullet,dx,dy in bullet_list:
-        if bullet.x < 2000 and bullet.x >-100:
-            bullet.x += dx
-            bullet.y += dy
-        else:
-            #bullet_list.pop(bullet_list.index(bullet))
-            pass
-    print(len(bullet_list))
+    
     redraw_gamewindow()

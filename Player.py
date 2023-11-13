@@ -28,8 +28,15 @@ class Player(pygame.sprite.Sprite):
         if self.inv_bool == True:
             if actual_time > (hit_time + self.inv_frames):
                 self.inv_bool = False
-        
     
+    def is_vul(self):
+        if self.inv_bool == False:
+            return True
+        else:
+            return False
+    def kll(self):
+        self.remove()
+
     def update(self):
         self.rect.move_ip(*self.velocity)
         self.check_life()
