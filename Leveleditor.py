@@ -18,8 +18,6 @@ class Leveleditor(pygame.sprite.Sprite):
     def level1(self):
         player = Player.Player()
         player_list.append(player)
-
-        
         player_group.add(player)
 
         enemy1 = Enemy.Enemy(400,300)
