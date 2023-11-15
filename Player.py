@@ -11,6 +11,7 @@ class Player(pygame.sprite.Sprite):
         self.life = 3
         self.inv_frames = 1000
         self.inv_bool = False
+        self.score = 0
     
     def check_life(self):
         if self.life <= 0:
